@@ -15,7 +15,67 @@ TIMESTEPS = 1000
 FPS = 30
 NUM_EPISODES = 10
 
+def tiling(lo, hi, bins, offsets):
+    split_points = []
+    ndim = len(bins)
+    for dim in range(ndim):
+        split_points.append(np.linspace(lo[dim], hi[dim], bins[dim] + 1)[1:-1] + offsets[dim])
+
+    return split_points
+
+def create_tilings(lo, hi, bins_and_offsets):
+    tilings = []
+    for bins, offsets in bins_and_offsets:
+        tilings.append(tiling(lo, hi, bins, offsets))
+    
+    return tilings
+
+def single_tiling_code(state, tiling):
+    ndim = len(state)
+    discretised_state = []
+    for dim in range(ndim):
+        discretised_state.append(int(np.digitize(state[dim], tiling[dim])))
+
+    return tuple(discretised_state)
+
+def tile_coding(state, tilings):
+    encoding = [single_tiling_code(state, tiling) for tiling in tilings]
+
+    return encoding
+
 class Task1():
+    def get_feature(self, state):
+        x = state[0]
+        y = state[1]
+        vel = state[2]
+        angle = (state[3] + 360) % 360
+
+        x_bin = np.linspace(-400, 400, 800 // 25 + 1)
+        y_bin = np.linspace(-400, 400, 800 // 25 + 1)
+        vel_bin = np.linspace(0, 20, 20 * 2 + 1)
+        angle_bin = np.linspace(0, 360, 360 // 3 + 1)
+
+        feature_x = np.zeros(800 // 25)
+        feature_x[np.where(x_bin <= x)[0][-1]] = 1
+        
+        feature_y = np.zeros(800 // 25)
+        feature_y[np.where(y_bin <= y)[0][-1]] = 1
+
+        feature_vel = np.zeros(20 * 2)
+        feature_vel[np.where(vel_bin <= vel)[0][-1]] = 1
+
+        feature_angle = np.zeros(360 // 3)
+        feature_angle[np.where(angle_bin <= angle)[0][-1]] = 1
+
+        feature = np.concatenate([feature_x, feature_y, feature_vel, feature_angle])
+        return feature
+    
+    # def get_feature(self, state):
+    #     state[0] /= 350
+    #     state[1] /= 350
+    #     state[2] /= 20
+    #     state[3] /= 360
+    #     return state
 
     def __init__(self):
         """
@@ -23,19 +83,23 @@ class Task1():
         """
         super().__init__()
 
-        self.d = 4 # Dimension of state space
+        # self.d = 4 
+        self.d = (800 // 25) + (800 // 25) + (20 * 2) + (360 // 3)
         self.w_steer = np.zeros((3, self.d))
         self.w_acc = np.zeros((5, self.d))
 
-    def linear_sarsa_lambda(self, s, a, s_dash, a_dash, r, z_steer, z_acc, alpha=1e-2, gamma = 1.0, Lambda = 0.0):
+        # Eligibility traces
+        self.z_steer = np.zeros(self.d)
+        self.z_acc = np.zeros(self.d)
+
+    def linear_sarsa_lambda(self, s, a, s_dash, a_dash, r, alpha=0.125, gamma = 1.0, Lambda = 0.9):
         delta_steer = r + gamma * self.w_steer[a_dash[0]] @ s_dash - self.w_steer[a[0]] @ s
-        z_steer = gamma * Lambda * z_steer + s
-        self.w_steer[a[0]] += alpha * delta_steer * z_steer
+        self.z_steer = gamma * Lambda * self.z_steer + s
+        self.w_steer[a[0]] += alpha * delta_steer * self.z_steer
 
         delta_acc = r + gamma * self.w_acc[a_dash[1]] @ s_dash - self.w_acc[a[1]] @ s
-        z_acc = gamma * Lambda * z_acc + s
-        self.w_acc[a[1]] += alpha * delta_acc * z_acc
-
+        self.z_acc = gamma * Lambda * self.z_acc + s
+        self.w_acc[a[1]] += alpha * delta_acc * self.z_acc
 
     def next_action(self, state):
         """
@@ -45,13 +109,20 @@ class Task1():
         """
 
         # Replace with your implementation to determine actions to be taken
-        epsilon=1e-1
+        epsilon = 1e-1
         if np.random.uniform(low=0.0, high=1.0) < epsilon:
             action_steer = np.random.randint(0, 3)
+        else:
+            q_steer = self.w_steer @ self.get_feature(state)
+            # action_steer = np.random.choice(np.flatnonzero(q_steer == np.max(q_steer)))
+            action_steer = np.argmax(q_steer)
+
+        if np.random.uniform(low=0.0, high=1.0) < epsilon:
             action_acc = np.random.randint(0, 5)
         else:
-            action_steer = np.argmax(self.w_steer @ state)
-            action_acc = np.argmax(self.w_acc @ state)
+            q_acc = self.w_acc @ self.get_feature(state)
+            # action_acc = np.random.choice(np.flatnonzero(q_acc == np.max(q_acc)))
+            action_acc = np.argmax(q_acc)
 
         action = np.array([action_steer, action_acc])  
         return action
@@ -90,10 +161,11 @@ class Task1():
             ##############################################
 
             # Linear SARSA(λ)
-            z_steer = np.zeros(self.d)
-            z_acc = np.zeros(self.d)
+            self.z_steer = np.zeros(self.d)
+            self.z_acc = np.zeros(self.d)
 
-            a = self.next_action(s)
+            a = self.next_action(self.get_feature(s))
+            # a = self.next_action(s)
             # The following code is a basic example of the usage of the simulator
             for t in range(TIMESTEPS):        
                 # Checks for quit
@@ -103,14 +175,14 @@ class Task1():
                             pygame.quit()
                             sys.exit()
 
-                # action = self.next_action(state)
                 s_dash, r, terminate, reached_road, info_dict = simulator._step(a)
                 fpsClock.tick(FPS)
 
                 cur_time += 1
 
                 a_dash = self.next_action(s_dash)
-                self.linear_sarsa_lambda(s, a, s_dash, a_dash, r, z_steer, z_acc)
+                self.linear_sarsa_lambda(self.get_feature(s), a, self.get_feature(s_dash), a_dash, r)
+                # self.linear_sarsa_lambda(s, a, s_dash, a_dash, r)
 
                 s = s_dash  
                 a = a_dash
