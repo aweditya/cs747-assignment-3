@@ -34,7 +34,6 @@ class Task1():
         # Replace with your implementation to determine actions to be taken
         x = state[0]
         y = state[1]
-        vel = state[2]
         angle = (state[3] + 360) % 360
 
         angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
@@ -43,7 +42,6 @@ class Task1():
         angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
         angle_road_bottom = (angle_road_bottom + 360) % 360
 
-        # print(angle, abs(angle_road_top - angle_road_bottom))
         if abs(angle_road_top - angle_road_bottom) < 3.5:
             if y > 0:
                 if abs(angle - 270) < 30:
@@ -69,15 +67,12 @@ class Task1():
                         
                 action_acc = 3
 
-
-        
         else:
             action_steer = 1
             action_acc = 2
 
             if abs(y) < 50:
                 if angle > angle_road_top or angle < angle_road_bottom:
-                    self.correct_direction = True
                     action_acc = 4
                 else:
                     if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
@@ -88,7 +83,6 @@ class Task1():
                     action_acc = 3
             else:
                 if angle > angle_road_top and angle < angle_road_bottom:
-                    self.correct_direction = True
                     action_acc = 4
                 else:
                     if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
@@ -99,7 +93,6 @@ class Task1():
                     action_acc = 3
 
         action = np.array([action_steer, action_acc])  
-
         return action
 
     def controller_task1(self, config_filepath=None, render_mode=False):
