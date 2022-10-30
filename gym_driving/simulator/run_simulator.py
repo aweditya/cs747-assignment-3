@@ -37,38 +37,66 @@ class Task1():
         vel = state[2]
         angle = (state[3] + 360) % 360
 
-        angle_road_top = math.atan2(-75 - y, 350 - x) * 180 / (2*math.pi)
+        angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
         angle_road_top = (angle_road_top + 360) % 360
 
-        angle_road_bottom = math.atan2(75 - y, 350 - x) * 180 / (2*math.pi)
+        angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
         angle_road_bottom = (angle_road_bottom + 360) % 360
 
-        # print(angle, angle_road_top, angle_road_bottom)
-        action_steer = 1
-        action_acc = 2
-
-        if abs(y) < 75:
-            if angle > angle_road_top or angle < angle_road_bottom:
-                self.correct_direction = True
-                action_acc = 4
-            else:
-                if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
-                    action_steer = 2
+        # print(angle, abs(angle_road_top - angle_road_bottom))
+        if abs(angle_road_top - angle_road_bottom) < 3.5:
+            if y > 0:
+                if abs(angle - 270) < 30:
+                    action_steer = 1
                 else:
-                    action_steer = 0
-
+                    if abs(angle - 240) < abs(angle - 300):
+                        action_steer = 2
+                    else:
+                        action_steer = 0
+                        
                 action_acc = 3
+                
+            else:
+                if abs(angle - 90) < 30:
+                    action_steer = 1
+                    action_acc = 3
+
+                else:
+                    if abs(angle - 60) < abs(angle - 120):
+                        action_steer = 2
+                    else:
+                        action_steer = 0
+                        
+                action_acc = 3
+
+
+        
         else:
-            if angle > angle_road_top and angle < angle_road_bottom:
-                self.correct_direction = True
-                action_acc = 4
-            else:
-                if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
-                    action_steer = 2
-                else:
-                    action_steer = 0
+            action_steer = 1
+            action_acc = 2
 
-                action_acc = 3
+            if abs(y) < 50:
+                if angle > angle_road_top or angle < angle_road_bottom:
+                    self.correct_direction = True
+                    action_acc = 4
+                else:
+                    if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
+                        action_steer = 2
+                    else:
+                        action_steer = 0
+                    
+                    action_acc = 3
+            else:
+                if angle > angle_road_top and angle < angle_road_bottom:
+                    self.correct_direction = True
+                    action_acc = 4
+                else:
+                    if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
+                        action_steer = 2
+                    else:
+                        action_steer = 0
+
+                    action_acc = 3
 
         action = np.array([action_steer, action_acc])  
 
