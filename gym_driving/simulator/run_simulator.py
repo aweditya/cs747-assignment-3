@@ -24,6 +24,7 @@ class Task1():
         """
 
         super().__init__()
+        self.behaviour = 'TURN_TO_X_AXIS'
 
     def next_action(self, state):
         """
@@ -35,70 +36,64 @@ class Task1():
         # Replace with your implementation to determine actions to be taken
         x = state[0]
         y = state[1]
-        vel = state[2]
         angle = (state[3] + 360) % 360
 
-        angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
-        angle_road_top = (angle_road_top + 360) % 360
-
-        angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
-        angle_road_bottom = (angle_road_bottom + 360) % 360
-
-        # print(angle, abs(angle_road_top - angle_road_bottom))
-        if abs(angle_road_top - angle_road_bottom) < 3.5:
-            if y > 0:
-                if abs(angle - 270) < 30:
-                    action_steer = 1
+        action_steer = 1
+        action_acc = 2
+    
+        # print(self.behaviour)
+        if self.behaviour == 'TURN_TO_X_AXIS':
+            if y >= 10:
+                if abs(angle - 270) < 3:
+                    self.behaviour = 'MOVE_TO_X_AXIS'
+                    action_acc = 3
+                
                 else:
-                    if abs(angle - 240) < abs(angle - 300):
-                        action_steer = 2
-                    else:
+                    if abs(angle - 273) < abs(angle - 267):
                         action_steer = 0
+                    else:
                         
-                action_acc = 3
+                        action_steer = 2
+            
+            elif y <= -10:
+                if abs(angle - 90) < 3:
+                    self.behaviour = 'MOVE_TO_X_AXIS'
+                    action_acc = 3
+                
+                else:
+                    if abs(angle - 93) < abs(angle - 87):
+                        action_steer = 0
+                    else:
+                        
+                        action_steer = 2
                 
             else:
-                if abs(angle - 90) < 30:
-                    action_steer = 1
-                    action_acc = 3
+                self.behaviour = 'MOVE_TO_ROAD'
 
-                else:
-                    if abs(angle - 60) < abs(angle - 120):
-                        action_steer = 2
-                    else:
-                        action_steer = 0
-                        
-                action_acc = 3
+        elif self.behaviour == 'MOVE_TO_X_AXIS':
+            if abs(y) >= 10:
+                action_acc = 4
 
-        else:
-            action_steer = 1
-            action_acc = 2
-
-            if abs(y) < 50:
-                if angle > angle_road_top or angle < angle_road_bottom:
-                    self.correct_direction = True
-                    action_acc = 4
-                else:
-                    if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
-                        action_steer = 2
-                    else:
-                        action_steer = 0
-                    
-                    action_acc = 3
             else:
-                if angle > angle_road_top and angle < angle_road_bottom:
-                    self.correct_direction = True
-                    action_acc = 4
-                else:
-                    if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
-                        action_steer = 2
-                    else:
-                        action_steer = 0
+                action_acc = 0
+                self.behaviour = 'MOVE_TO_ROAD'
 
-                    action_acc = 3
+        elif self.behaviour == 'MOVE_TO_ROAD':
+            angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
+            angle_road_top = (angle_road_top + 360) % 360
+
+            angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
+            angle_road_bottom = (angle_road_bottom + 360) % 360
+
+            if angle > angle_road_top or angle < angle_road_bottom:
+                    action_acc = 4
+            else:
+                if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
+                    action_steer = 2
+                else:
+                    action_steer = 0
 
         action = np.array([action_steer, action_acc])  
-
         return action
 
     def controller_task1(self, config_filepath=None, render_mode=False):
@@ -154,6 +149,8 @@ class Task1():
                     road_status = reached_road
                     break
 
+            self.behaviour = 'TURN_TO_X_AXIS'
+
             # Writing the output at each episode to STDOUT
             print(str(road_status) + ' ' + str(cur_time))
 
@@ -164,113 +161,7 @@ class Task2():
         """
 
         super().__init__()
-
-        # self.d = 4 
-        self.d = 20 + 20 + 20
-        self.w_steer = np.random.normal(size=(3, self.d))
-        self.w_acc = np.random.normal(size=(5, self.d))
-
-        # Eligibility traces
-        self.z_steer = np.zeros(self.d)
-        self.z_acc = np.zeros(self.d)
-
-        # Parametric policy
-        self.pi_steer = np.ones(3) / 3
-        self.pi_acc = np.ones(5) / 5
-
-        self.train = True
-
-        self.w_steer = np.load('weights/steer.npy')
-        self.w_acc = np.load('weights/acc.npy')
-
-
-    def get_feature(self, state):
-        x = state[0]
-        y = state[1]
-        vel = state[2]
-        angle = (state[3] + 360) % 360
-
-        x_bin = np.linspace(-400, 400, 20 + 1)
-        y_bin = np.linspace(-400, 400, 20 + 1)
-        vel_bin = np.linspace(0, 20, 20 // 2 + 1)
-        angle_bin = np.linspace(0, 360, 20 + 1)
-
-        feature_x = np.zeros(20)
-        feature_x[np.where(x_bin <= x)[0][-1]] = 1
-        
-        feature_y = np.zeros(20)
-        feature_y[np.where(y_bin <= y)[0][-1]] = 1
-
-        feature_vel = np.zeros(20 // 4)
-        feature_vel[np.where(vel_bin <= vel)[0][-1]] = 1
-
-        feature_angle = np.zeros(20)
-        feature_angle[np.where(angle_bin <= angle)[0][-1]] = 1
-
-        # feature = np.concatenate([feature_x, feature_y, feature_vel, feature_angle])
-        feature = np.concatenate([feature_x, feature_y, feature_angle])
-        return feature
-
-    def reinforce(self, history, alpha=0.1):
-        w_steer_new = np.copy(self.w_steer)
-        w_acc_new = np.copy(self.w_acc)
-
-        s = history['s']
-        a = history['a']
-        r = history['r']
-
-        T = len(s)
-        G = 0.0
-        for k in range(T):
-            G += r[k]
-        
-        grad_ln_pi_steer = np.zeros(np.shape(self.w_steer))
-        grad_ln_pi_acc = np.zeros(np.shape(self.w_acc))
-        for t in range(T):
-            choice_steer = self.w_steer @ self.get_feature(s[t])
-            choice_steer -= np.max(choice_steer)
-            self.pi_steer = np.exp(choice_steer) / np.sum(np.exp(choice_steer))
-            for action_steer in range(3):
-                if action_steer == a[t][0]:
-                    grad_ln_pi_steer[action_steer] = (1 - self.pi_steer[action_steer]) * self.get_feature(s[t])
-                else:
-                    grad_ln_pi_steer[action_steer] = -self.pi_steer[action_steer] * self.get_feature(s[t])
-
-            w_steer_new += alpha * G * grad_ln_pi_steer
-
-            choice_acc = self.w_acc @ self.get_feature(s[t])
-            choice_acc -= np.max(choice_acc)
-            self.pi_acc = np.exp(choice_acc) / np.sum(np.exp(choice_acc))
-            for action_acc in range(5):
-                if action_acc == a[t][1]:
-                    grad_ln_pi_acc[action_acc] = (1 - self.pi_acc[action_acc]) * self.get_feature(s[t])
-                else:
-                    grad_ln_pi_acc[action_acc] = -self.pi_acc[action_acc] * self.get_feature(s[t])
-
-            w_acc_new += alpha * G * grad_ln_pi_acc
-
-            G -= r[t]
-
-        self.w_steer = w_steer_new
-        self.w_acc = w_acc_new
-
-    def linear_sarsa_lambda(self, s, a, s_dash, a_dash, r, terminate, alpha=0.125, gamma = 1.0, Lambda = 0.0):
-        s_feature = self.get_feature(s)
-        s_dash_feature = self.get_feature(s_dash)
-
-        if terminate:
-            delta_steer = r - self.w_steer[a[0]] @ s_feature
-            delta_acc = r - self.w_acc[a[1]] @ s_feature
-        else:
-            delta_steer = r + gamma * self.w_steer[a_dash[0]] @ s_dash_feature - self.w_steer[a[0]] @ s_feature
-            delta_acc = r + gamma * self.w_acc[a_dash[1]] @ s_dash_feature - self.w_acc[a[1]] @ s_feature
-
-        self.z_steer = gamma * Lambda * self.z_steer + s_feature
-        self.w_steer[a[0]] += alpha * delta_steer * self.z_steer
-
-        self.z_acc = gamma * Lambda * self.z_acc + s_feature
-        self.w_acc[a[1]] += alpha * delta_acc * self.z_acc
-
+        self.mud_pits = []
 
     def next_action(self, state):
         """
@@ -282,20 +173,31 @@ class Task2():
         """
 
         # Replace with your implementation to determine actions to be taken
-        epsilon = 0.0
-        if np.random.uniform(low=0.0, high=1.0) < epsilon:
-            action_steer = np.random.randint(0, 3)
-        else:
-            q_steer = self.w_steer @ self.get_feature(state)
-            # action_steer = np.random.choice(np.flatnonzero(q_steer == np.max(q_steer)))
-            action_steer = np.argmax(q_steer)
+        [x, y, _, angle] = state
+        [ran_cen_1, ran_cen_2, ran_cen_3, ran_cen_4] = self.mud_pits
+        [ran_cen_1x, ran_cen_1y] = ran_cen_1 # Quadrant 1
+        [ran_cen_2x, ran_cen_2y] = ran_cen_2 # Quadrant 4
+        [ran_cen_3x, ran_cen_3y] = ran_cen_3 # Quadrant 2
+        [ran_cen_4x, ran_cen_4y] = ran_cen_4 # Quadrant 3
 
-        if np.random.uniform(low=0.0, high=1.0) < epsilon:
-            action_acc = np.random.randint(0, 5)
-        else:
-            q_acc = self.w_acc @ self.get_feature(state)
-            # action_acc = np.random.choice(np.flatnonzero(q_acc == np.max(q_acc)))
-            action_acc = np.argmax(q_acc)
+        if x >= 0 and y >= 0: # Quadrant 1
+            # In quadrant 1, I should only be worried about ran_cen_1
+            pass
+
+        elif x >= 0 and y < 0: # Quadrant 4
+            # In quadrant 1, I should only be worried about ran_cen_2
+            pass
+
+        elif x < 0 and y >= 0: # Quadrant 2
+            # In quadrant 1, I should only be worried about ran_cen_3
+            pass
+
+        else: # Quadrant 3
+            # In quadrant 1, I should only be worried about ran_cen_4
+            pass
+
+        action_steer = 0
+        action_acc = 0
 
         action = np.array([action_steer, action_acc])  
         return action
@@ -370,11 +272,8 @@ class Task2():
             # The following code is a basic example of the usage of the simulator
             road_status = False
 
-            # Linear SARSA(λ)
-            self.z_steer = np.zeros(self.d)
-            self.z_acc = np.zeros(self.d)
-
-            # a = self.next_action(s)
+            a = self.next_action(s)
+            self.mud_pits = ran_cen_list
             for t in range(TIMESTEPS):
         
                 # Checks for quit
@@ -389,23 +288,13 @@ class Task2():
                 fpsClock.tick(FPS)
 
                 cur_time += 1
-
-                a_dash = self.next_action(s_dash)
-                if self.train:
-                    self.linear_sarsa_lambda(s, a, s_dash, a_dash, r, terminate)
-
-                s = s_dash  
-                a = a_dash
+                s = s_dash
 
                 if terminate:
                     road_status = reached_road
                     break
 
             print(str(road_status) + ' ' + str(cur_time))
-            
-        if self.train:
-            np.save('weights/steer.npy', self.w_steer)
-            np.save('weights/acc.npy', self.w_acc)
 
 if __name__ == '__main__':
 
