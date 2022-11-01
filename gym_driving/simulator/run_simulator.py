@@ -24,6 +24,11 @@ class Task1():
         """
 
         super().__init__()
+
+        # Steps to reach road:
+        # 1) Turn to the x-axis (TURN_TO_X_AXIS)
+        # 2) Move to the x-axis (MOVE_TO_X_AXIS)
+        # 3) Turn and move towards the road (MOVE_TO_ROAD)
         self.behaviour = 'TURN_TO_X_AXIS'
 
     def next_action(self, state):
@@ -41,7 +46,6 @@ class Task1():
         action_steer = 1
         action_acc = 2
     
-        # print(self.behaviour)
         if self.behaviour == 'TURN_TO_X_AXIS':
             if y >= 10:
                 if abs(angle - 270) < 3:
@@ -161,6 +165,14 @@ class Task2():
         """
 
         super().__init__()
+
+        # Steps to reach road:
+        # 1) If there is an obstacle to the top/bottom, first turn right/left (TURN_AWAY_FROM_MUDPIT)
+        # 2) Once you point in the current direction, move along the mudpit (MOVE_ALONG_MUDPIT)
+        # 2) Once there is no obstacle to the top/bottom, turn to the x-axis (TURN_TO_X_AXIS)
+        # 2) Move to the x-axis (MOVE_TO_X_AXIS)
+        # 3) Turn and move towards the road (MOVE_TO_ROAD)
+        self.behaviour = 'MOVE_AROUND_MUDPIT'
         self.mud_pits = []
 
     def next_action(self, state):
@@ -173,32 +185,150 @@ class Task2():
         """
 
         # Replace with your implementation to determine actions to be taken
-        [x, y, _, angle] = state
+        x = state[0]
+        y = state[1]
+        angle = (state[3] + 360) % 360
+
+        action_steer = 1
+        action_acc = 2
+
         [ran_cen_1, ran_cen_2, ran_cen_3, ran_cen_4] = self.mud_pits
         [ran_cen_1x, ran_cen_1y] = ran_cen_1 # Quadrant 1
         [ran_cen_2x, ran_cen_2y] = ran_cen_2 # Quadrant 4
         [ran_cen_3x, ran_cen_3y] = ran_cen_3 # Quadrant 2
         [ran_cen_4x, ran_cen_4y] = ran_cen_4 # Quadrant 3
 
-        if x >= 0 and y >= 0: # Quadrant 1
-            # In quadrant 1, I should only be worried about ran_cen_1
-            pass
+        # print(state, self.behaviour)
+        if self.behaviour == 'MOVE_AROUND_MUDPIT':
+            if x >= 0 and y >= 0: # Quadrant 1
+                if y >= ran_cen_1y - 110:
+                    if abs(x - ran_cen_1x) <= 110: # Obstacle in the way
+                        if abs(angle - 180) < 3: # If you are in the right direction, move ahead
+                            self.action_acc = 3
 
-        elif x >= 0 and y < 0: # Quadrant 4
-            # In quadrant 1, I should only be worried about ran_cen_2
-            pass
+                        else: # Turn to the right direction
+                            if abs(angle - 183) < abs(angle - 177):
+                                action_steer = 0
 
-        elif x < 0 and y >= 0: # Quadrant 2
-            # In quadrant 1, I should only be worried about ran_cen_3
-            pass
+                            else:                        
+                                action_steer = 2
 
-        else: # Quadrant 3
-            # In quadrant 1, I should only be worried about ran_cen_4
-            pass
+                    else: # No obstacle in the way
+                        self.behaviour = 'TURN_TO_X_AXIS'
+                        action_acc = 0
+                else:
+                    self.behaviour = 'MOVE_TO_ROAD'
+                    
+            elif x >= 0 and y < 0: # Quadrant 4
+                if y <= ran_cen_2y + 110:
+                    if abs(x - ran_cen_2x) <= 110: # Obstacle in the way
+                        if abs(angle) < 3: # If you are in the right direction, move ahead
+                            action_acc = 3
 
-        action_steer = 0
-        action_acc = 0
+                        else: # Turn to the right direction
+                            if abs(angle - 3) < abs(angle - 357):
+                                action_steer = 0
 
+                            else:                        
+                                action_steer = 2
+
+                    else: # No obstacle in the way
+                        self.behaviour = 'TURN_TO_X_AXIS'
+                        action_acc = 0
+
+                else:
+                    self.behaviour = 'MOVE_TO_ROAD'
+
+            elif x < 0 and y >= 0: # Quadrant 2
+                if y >= ran_cen_3y - 110:
+                    if abs(x - ran_cen_3x) <= 110: # Obstacle in the way
+                        if abs(angle - 180) < 3: # If you are in the right direction, move ahead
+                            self.action_acc = 3
+
+                        else: # Turn to the right direction
+                            if abs(angle - 183) < abs(angle - 177):
+                                action_steer = 0
+
+                            else:                        
+                                action_steer = 2
+
+                    else: # No obstacle in the way
+                        self.behaviour = 'TURN_TO_X_AXIS'
+                        action_acc = 0
+                
+                else:
+                    self.behaviour = 'MOVE_TO_ROAD'
+
+            elif x < 0 and y < 0: # Quadrant 3
+                if y <= ran_cen_4y + 110:
+                    if abs(x - ran_cen_4x) <= 110: # Obstacle in the way
+                        if abs(angle) < 3: # If you are in the right direction, move ahead
+                            action_acc = 3
+
+                        else: # Turn to the right direction
+                            if abs(angle - 3) < abs(angle - 357):
+                                action_steer = 0
+
+                            else:                        
+                                action_steer = 2
+
+                    else: # No obstacle in the way
+                        self.behaviour = 'TURN_TO_X_AXIS'
+                        action_acc = 0
+                else:
+                    self.behaviour = 'MOVE_TO_ROAD'
+        
+        elif self.behaviour == 'TURN_TO_X_AXIS':
+            if y >= 10:
+                if abs(angle - 270) < 3:
+                    self.behaviour = 'MOVE_TO_X_AXIS'
+                    action_acc = 3
+                
+                else:
+                    if abs(angle - 273) < abs(angle - 267):
+                        action_steer = 0
+
+                    else:
+                        action_steer = 2
+            
+            elif y <= -10:
+                if abs(angle - 90) < 3:
+                    self.behaviour = 'MOVE_TO_X_AXIS'
+                    action_acc = 3
+                
+                else:
+                    if abs(angle - 93) < abs(angle - 87):
+                        action_steer = 0
+                    else:
+                        
+                        action_steer = 2
+                
+            else:
+                self.behaviour = 'MOVE_TO_ROAD'
+
+        elif self.behaviour == 'MOVE_TO_X_AXIS':
+            if abs(y) >= 10:
+                action_acc = 4
+
+            else:
+                action_acc = 0
+                self.behaviour = 'MOVE_TO_ROAD'
+
+        elif self.behaviour == 'MOVE_TO_ROAD':
+            angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
+            angle_road_top = (angle_road_top + 360) % 360
+
+            angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
+            angle_road_bottom = (angle_road_bottom + 360) % 360
+
+            if angle > angle_road_top or angle < angle_road_bottom:
+                    action_acc = 4
+            else:
+                if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
+                    action_steer = 2
+                else:
+                    action_steer = 0
+        
         action = np.array([action_steer, action_acc])  
         return action
 
@@ -219,7 +349,7 @@ class Task2():
         ###########################################################
 
         # e is the number of the current episode, running it for 10 episodes
-        for e in range(TRAIN_EPISODES if self.train else NUM_EPISODES):
+        for e in range(NUM_EPISODES):
 
             ################ Setting up the environment, do NOT modify these lines ################
             # To randomly initialize centers of the traps within a determined range
@@ -272,7 +402,6 @@ class Task2():
             # The following code is a basic example of the usage of the simulator
             road_status = False
 
-            a = self.next_action(s)
             self.mud_pits = ran_cen_list
             for t in range(TIMESTEPS):
         
@@ -293,6 +422,8 @@ class Task2():
                 if terminate:
                     road_status = reached_road
                     break
+
+            self.behaviour = 'MOVE_AROUND_MUDPIT'
 
             print(str(road_status) + ' ' + str(cur_time))
 
