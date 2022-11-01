@@ -83,10 +83,10 @@ class Task1():
                 self.behaviour = 'MOVE_TO_ROAD'
 
         elif self.behaviour == 'MOVE_TO_ROAD':
-            angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
+            angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / math.pi
             angle_road_top = (angle_road_top + 360) % 360
 
-            angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
+            angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / math.pi
             angle_road_bottom = (angle_road_bottom + 360) % 360
 
             if angle > angle_road_top or angle < angle_road_bottom:
@@ -185,6 +185,7 @@ class Task2():
         """
 
         # Replace with your implementation to determine actions to be taken
+        # print(state, self.behaviour)
         x = state[0]
         y = state[1]
         angle = (state[3] + 360) % 360
@@ -200,7 +201,7 @@ class Task2():
 
         if self.behaviour == 'MOVE_AROUND_MUDPIT':
             if x >= 0 and y >= 0: # Quadrant 1
-                if y >= ran_cen_1y - 110:
+                if y >= 10:
                     if abs(x - ran_cen_1x) <= 110: # Obstacle in the way
                         if abs(angle - 180) < 3: # If you are in the right direction, move ahead
                             action_acc = 4
@@ -217,9 +218,10 @@ class Task2():
                         action_acc = 0
                 else:
                     self.behaviour = 'MOVE_TO_ROAD'
+                    action_acc = 0
                     
             elif x >= 0 and y < 0: # Quadrant 4
-                if y <= ran_cen_2y + 110:
+                if y <= -10:
                     if abs(x - ran_cen_2x) <= 110: # Obstacle in the way
                         if abs(angle - 180) < 3: # If you are in the right direction, move ahead
                             action_acc = 4
@@ -237,9 +239,10 @@ class Task2():
 
                 else:
                     self.behaviour = 'MOVE_TO_ROAD'
+                    action_acc = 0
 
             elif x < 0 and y >= 0: # Quadrant 2
-                if y >= ran_cen_3y - 110:
+                if y >= 10:
                     if abs(x - ran_cen_3x) <= 110: # Obstacle in the way
                         if abs(angle) < 3: # If you are in the right direction, move ahead
                             action_acc = 3
@@ -257,9 +260,10 @@ class Task2():
                 
                 else:
                     self.behaviour = 'MOVE_TO_ROAD'
+                    action_acc = 0
 
             elif x < 0 and y < 0: # Quadrant 3
-                if y <= ran_cen_4y + 110:
+                if y <= -10:
                     if abs(x - ran_cen_4x) <= 110: # Obstacle in the way
                         if abs(angle) < 3: # If you are in the right direction, move ahead
                             action_acc = 3
@@ -276,12 +280,13 @@ class Task2():
                         action_acc = 0
                 else:
                     self.behaviour = 'MOVE_TO_ROAD'
+                    action_acc = 0
         
         elif self.behaviour == 'TURN_TO_X_AXIS':
-            if y >= -10:
+            if y >= 10:
                 if abs(angle - 270) < 3:
                     self.behaviour = 'MOVE_TO_X_AXIS'
-                    action_acc = 3
+                    action_acc = 4
                 
                 else:
                     if abs(angle - 273) < abs(angle - 267):
@@ -290,10 +295,10 @@ class Task2():
                     else:
                         action_steer = 2
             
-            elif y <= 10:
+            elif y <= -10:
                 if abs(angle - 90) < 3:
                     self.behaviour = 'MOVE_TO_X_AXIS'
-                    action_acc = 3
+                    action_acc = 4
                 
                 else:
                     if abs(angle - 93) < abs(angle - 87):
@@ -304,9 +309,10 @@ class Task2():
                 
             else:
                 self.behaviour = 'MOVE_TO_ROAD'
+                action_acc = 0
 
         elif self.behaviour == 'MOVE_TO_X_AXIS':
-            if y >= min(ran_cen_1y, ran_cen_2y) - 110 and y <= min(ran_cen_3y, ran_cen_4y) + 110:
+            if abs(y) >= 10:
                 action_acc = 4
 
             else:
@@ -314,21 +320,39 @@ class Task2():
                 self.behaviour = 'MOVE_TO_ROAD'
 
         elif self.behaviour == 'MOVE_TO_ROAD':
-            angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / (2*math.pi)
-            angle_road_top = (angle_road_top + 360) % 360
+            if ran_cen_1y - 110 < 50:
+                angle_road_bottom = math.atan2(ran_cen_1y - 110 - y, 350 - x) * 180 / math.pi
 
-            angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / (2*math.pi)
-            angle_road_bottom = (angle_road_bottom + 360) % 360
-
-            if angle > angle_road_top or angle < angle_road_bottom:
-                    action_acc = 4
             else:
-                if abs(angle - angle_road_top) < abs(angle - angle_road_bottom):
+                angle_road_bottom = math.atan2(50 - y, 350 - x) * 180 / math.pi
+
+            if ran_cen_2y + 110 > -50:
+                angle_road_top = math.atan2(ran_cen_2y + 110 - y, 350 - x) * 180 / math.pi
+
+            else:
+                angle_road_top = math.atan2(-50 - y, 350 - x) * 180 / math.pi
+
+            angle_road_bottom = (angle_road_bottom + 360) % 360
+            angle_road_top = (angle_road_top + 360) % 360
+            
+            # print(angle, angle_road_top, angle_road_bottom)
+            if angle > 180:
+                if angle > angle_road_top:
+                    self.behaviour = 'FINISH'
+                        
+                else:
                     action_steer = 2
+                
+            else:
+                if angle < angle_road_bottom:
+                    self.behaviour = 'FINISH'
+
                 else:
                     action_steer = 0
+        
+        elif self.behaviour == 'FINISH':
+            action_acc = 4
 
-        # print(state, self.behaviour, angle)
         action = np.array([action_steer, action_acc])  
         return action
 
