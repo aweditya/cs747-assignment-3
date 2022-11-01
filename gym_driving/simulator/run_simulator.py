@@ -198,13 +198,12 @@ class Task2():
         [ran_cen_3x, ran_cen_3y] = ran_cen_3 # Quadrant 2
         [ran_cen_4x, ran_cen_4y] = ran_cen_4 # Quadrant 3
 
-        # print(state, self.behaviour)
         if self.behaviour == 'MOVE_AROUND_MUDPIT':
             if x >= 0 and y >= 0: # Quadrant 1
                 if y >= ran_cen_1y - 110:
                     if abs(x - ran_cen_1x) <= 110: # Obstacle in the way
                         if abs(angle - 180) < 3: # If you are in the right direction, move ahead
-                            self.action_acc = 3
+                            action_acc = 4
 
                         else: # Turn to the right direction
                             if abs(angle - 183) < abs(angle - 177):
@@ -222,11 +221,11 @@ class Task2():
             elif x >= 0 and y < 0: # Quadrant 4
                 if y <= ran_cen_2y + 110:
                     if abs(x - ran_cen_2x) <= 110: # Obstacle in the way
-                        if abs(angle) < 3: # If you are in the right direction, move ahead
-                            action_acc = 3
+                        if abs(angle - 180) < 3: # If you are in the right direction, move ahead
+                            action_acc = 4
 
                         else: # Turn to the right direction
-                            if abs(angle - 3) < abs(angle - 357):
+                            if abs(angle - 183) < abs(angle - 177):
                                 action_steer = 0
 
                             else:                        
@@ -242,11 +241,11 @@ class Task2():
             elif x < 0 and y >= 0: # Quadrant 2
                 if y >= ran_cen_3y - 110:
                     if abs(x - ran_cen_3x) <= 110: # Obstacle in the way
-                        if abs(angle - 180) < 3: # If you are in the right direction, move ahead
-                            self.action_acc = 3
+                        if abs(angle) < 3: # If you are in the right direction, move ahead
+                            action_acc = 3
 
                         else: # Turn to the right direction
-                            if abs(angle - 183) < abs(angle - 177):
+                            if abs(angle - 3) < abs(angle - 357):
                                 action_steer = 0
 
                             else:                        
@@ -279,7 +278,7 @@ class Task2():
                     self.behaviour = 'MOVE_TO_ROAD'
         
         elif self.behaviour == 'TURN_TO_X_AXIS':
-            if y >= 10:
+            if y >= -10:
                 if abs(angle - 270) < 3:
                     self.behaviour = 'MOVE_TO_X_AXIS'
                     action_acc = 3
@@ -291,7 +290,7 @@ class Task2():
                     else:
                         action_steer = 2
             
-            elif y <= -10:
+            elif y <= 10:
                 if abs(angle - 90) < 3:
                     self.behaviour = 'MOVE_TO_X_AXIS'
                     action_acc = 3
@@ -307,7 +306,7 @@ class Task2():
                 self.behaviour = 'MOVE_TO_ROAD'
 
         elif self.behaviour == 'MOVE_TO_X_AXIS':
-            if abs(y) >= 10:
+            if y >= min(ran_cen_1y, ran_cen_2y) - 110 and y <= min(ran_cen_3y, ran_cen_4y) + 110:
                 action_acc = 4
 
             else:
@@ -328,7 +327,8 @@ class Task2():
                     action_steer = 2
                 else:
                     action_steer = 0
-        
+
+        # print(state, self.behaviour, angle)
         action = np.array([action_steer, action_acc])  
         return action
 
